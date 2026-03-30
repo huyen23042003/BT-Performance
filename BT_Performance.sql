@@ -97,36 +97,66 @@ INSERT INTO INVOICEDETAILS (InvoiceDetailID, InvoiceID, ProductID, Quantity, Tot
 
 GO;
 
-CREATE PROCEDURE GetCustomerRevenue
+CREATE OR ALTER PROCEDURE GetCustomerRevenue
     @StartDate DATE,
     @EndDate DATE
 AS
 BEGIN
-    SET NOCOUNT ON; 
+    SET NOCOUNT ON;
 
+    -- Kiểm tra tham số đầu vào
+    IF @StartDate IS NULL OR @EndDate IS NULL
+    BEGIN
+        RAISERROR(N'Ngày bắt đầu và ngày kết thúc không được để trống.', 16, 1);
+        RETURN;
+    END
+
+    IF @StartDate > @EndDate
+    BEGIN
+        RAISERROR(N'Ngày bắt đầu không được lớn hơn ngày kết thúc.', 16, 1);
+        RETURN;
+    END
+
+    -- 1. Chi tiết doanh thu theo từng hóa đơn
     SELECT 
-        c.CustomerID, 
-        c.CustomerName, 
-        COUNT(DISTINCT i.InvoiceID) AS TotalInvoices,
-        SUM(id.TotalPrice) AS TotalRevenue
+        c.CustomerID,
+        c.CustomerName,
+        i.InvoiceID,
+        SUM(ISNULL(id.TotalPrice, 0)) AS InvoiceRevenue
     FROM Customer c
     INNER JOIN Invoice i ON c.CustomerID = i.CustomerID
     INNER JOIN InvoiceDetails id ON i.InvoiceID = id.InvoiceID
-    WHERE i.InvoiceDate >= @StartDate AND i.InvoiceDate <= @EndDate
-    GROUP BY c.CustomerID, c.CustomerName
-    ORDER BY TotalRevenue DESC;
+    WHERE i.InvoiceDate >= @StartDate
+      AND i.InvoiceDate < DATEADD(DAY, 1, @EndDate)
+    GROUP BY c.CustomerID, c.CustomerName, i.InvoiceID
+    ORDER BY i.InvoiceID;
 
+    -- 1. Doanh thu theo từng khách hàng
     SELECT 
-        p.ProductID, 
-        p.ProductName, 
-        SUM(id.Quantity) AS TotalQuantity, 
-        SUM(id.TotalPrice) AS ProductRevenue
+        c.CustomerID,
+        c.CustomerName,
+        SUM(ISNULL(id.TotalPrice, 0)) AS TotalRevenue
+    FROM Customer c
+    INNER JOIN Invoice i ON c.CustomerID = i.CustomerID
+    INNER JOIN InvoiceDetails id ON i.InvoiceID = id.InvoiceID
+    WHERE i.InvoiceDate >= @StartDate
+      AND i.InvoiceDate < DATEADD(DAY, 1, @EndDate)
+    GROUP BY c.CustomerID, c.CustomerName
+    ORDER BY c.CustomerID;
+
+    -- 3. Thống kê sản phẩm đã bán
+    SELECT 
+        p.ProductID,
+        p.ProductName,
+        SUM(ISNULL(id.Quantity, 0)) AS TotalQuantity,
+        SUM(ISNULL(id.TotalPrice, 0)) AS TotalRevenue
     FROM Product p
     INNER JOIN InvoiceDetails id ON p.ProductID = id.ProductID
     INNER JOIN Invoice i ON id.InvoiceID = i.InvoiceID
-    WHERE i.InvoiceDate BETWEEN @StartDate AND @EndDate
+    WHERE i.InvoiceDate >= @StartDate
+      AND i.InvoiceDate < DATEADD(DAY, 1, @EndDate)
     GROUP BY p.ProductID, p.ProductName
-    ORDER BY TotalQuantity DESC;
+    ORDER BY p.ProductID;
 END;
 GO
 
@@ -135,4 +165,4 @@ EXEC GetCustomerRevenue
     @EndDate = '2024-09-18';
 GO
 
-SELECT * FROM INVOICE;
+

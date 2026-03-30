@@ -1,26 +1,24 @@
-
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 
 namespace ProductManagement
 {
-    class Program
+    public class Product
     {
-        // Class Product để quản lý thông tin sản phẩm
-        public class Product
+        public string Name { get; set; }
+        public decimal Price { get; set; }
+
+        public Product(string name, decimal price)
         {
-            public string Name { get; set; }
-            public double Price { get; set; }
-
-            public Product(string name, double price)
-            {
-                Name = name;
-                Price = price;
-            }
+            Name = name;
+            Price = price;
         }
+    }
 
-        // Danh sách sản phẩm
-        private static List<Product> productList = new List<Product>();
+    internal class Program
+    {
+        private static readonly List<Product> productList = new List<Product>();
 
         static void Main(string[] args)
         {
@@ -28,12 +26,13 @@ namespace ProductManagement
 
             while (!exit)
             {
+                Console.WriteLine("\n===== QUẢN LÝ SẢN PHẨM =====");
                 Console.WriteLine("1. Thêm sản phẩm mới");
                 Console.WriteLine("2. Liệt kê sản phẩm");
                 Console.WriteLine("3. Tính tổng giá trị sản phẩm");
                 Console.WriteLine("4. Thoát");
-
                 Console.Write("Chọn một chức năng: ");
+
                 string choice = Console.ReadLine();
 
                 switch (choice)
@@ -45,73 +44,90 @@ namespace ProductManagement
                         ListProducts();
                         break;
                     case "3":
-                        Console.WriteLine("Tổng giá trị sản phẩm: " + CalculateTotalValue());
+                        Console.WriteLine($"Tổng giá trị sản phẩm: {CalculateTotalValue():N0}");
                         break;
                     case "4":
                         exit = true;
+                        Console.WriteLine("Thoát chương trình.");
                         break;
                     default:
-                        Console.WriteLine("Lựa chọn không hợp lệ!");
+                        Console.WriteLine("Lựa chọn không hợp lệ. Vui lòng chọn từ 1 đến 4.");
                         break;
                 }
             }
         }
 
-        // Chức năng thêm sản phẩm mới
-        public static void AddProduct()
+        private static void AddProduct()
         {
-            Console.Write("Nhập tên sản phẩm: ");
-            string name = Console.ReadLine()?.Trim();
-            if (string.IsNullOrEmpty(name))
-            {
-                Console.WriteLine("Tên sẩn phẩm không được để trống");
-                return;
-            }
-
-            Console.Write("Nhập giá sản phẩm: ");
-            double price;
-            while(!double.TryParse(Console.ReadLine(),out price) || price <=0)
-            {
-                Console.WriteLine();
-                Console.Write("Giá trị không hợp lệ. Vui lòng nhập lại giá sản phẩm lớn hơn 0: ");
-            }  
+            string name = ReadProductName();
+            decimal price = ReadProductPrice();
 
             Product product = new Product(name, price);
             productList.Add(product);
 
-            Console.WriteLine("Đã thêm sản phẩm: " + name);
+            Console.WriteLine($"Đã thêm sản phẩm: {product.Name} - Giá: {product.Price:N0}");
         }
 
-        // Chức năng liệt kê sản phẩm
-        public static void ListProducts()
+        private static string ReadProductName()
         {
-            Console.WriteLine("Danh sách sản phẩm:");
+            while (true)
+            {
+                Console.Write("Nhập tên sản phẩm: ");
+                string name = Console.ReadLine();
+
+                if (!string.IsNullOrWhiteSpace(name))
+                {
+                    return name.Trim();
+                }
+
+                Console.WriteLine("Tên sản phẩm không được để trống.");
+            }
+        }
+
+        private static decimal ReadProductPrice()
+        {
+            while (true)
+            {
+                Console.Write("Nhập giá sản phẩm: ");
+                string input = Console.ReadLine();
+
+                if (decimal.TryParse(input, NumberStyles.Number, CultureInfo.InvariantCulture, out decimal price) && price > 0)
+                {
+                    return price;
+                }
+
+                Console.WriteLine("Giá sản phẩm không hợp lệ. Vui lòng nhập số lớn hơn 0.");
+            }
+        }
+
+        private static void ListProducts()
+        {
+            Console.WriteLine("\nDanh sách sản phẩm:");
 
             if (productList.Count == 0)
             {
                 Console.WriteLine("Không có sản phẩm nào.");
+                return;
             }
-            else
+
+            int index = 1;
+            foreach (Product product in productList)
             {
-                foreach (Product product in productList)
-                {
-                    Console.WriteLine("Tên sản phẩm: " + product.Name + ", Giá: " + product.Price);
-                }
+                Console.WriteLine($"{index}. Tên sản phẩm: {product.Name}, Giá: {product.Price:N0}");
+                index++;
             }
         }
 
-        // Chức năng tính tổng giá trị sản phẩm
-        public static double CalculateTotalValue()
+        private static decimal CalculateTotalValue()
         {
-            double total = 0;
+            decimal total = 0;
 
             foreach (Product product in productList)
             {
-                total += product.Price;  // Lỗi logic có thể phát sinh khi giá trị không hợp lệ
+                total += product.Price;
             }
 
             return total;
         }
     }
 }
-
