@@ -131,7 +131,7 @@ BEGIN
     GROUP BY c.CustomerID, c.CustomerName, i.InvoiceID
     ORDER BY i.InvoiceID;
 
-    -- 1. Doanh thu theo từng khách hàng
+    -- 2. Doanh thu theo từng khách hàng
     SELECT 
         c.CustomerID,
         c.CustomerName,
